@@ -2,7 +2,9 @@
 title: "wk4"
 author: "phil"
 date: "2022-10-28"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r}
@@ -65,27 +67,3 @@ merged_data_diff <- merged_data %>%
   select_all() %>% print()
 
 ```
-```{r}
-# bounding box 
-world_gii <- merged_data_diff %>%
-  st_bbox() %>%
-  tmaptools::read_osm(., type = 'osm', zoom = NULL)
-```
-
-
-```{r}
-# world gender inequality map
-tmap_mode("plot")
-
-tm_shape(world_gii)+ #bounding box
-  tm_rgb()+ #raster aesthetic
-  tm_shape(merged_data_diff) + 
-  tm_polygons("diff", 
-              style="jenks",
-              palette="YlOrBr",
-              midpoint=NA,
-              title="Gender Inequality Difference between 2010 and 2019",
-              alpha = 0.5) + 
-  tm_compass(position = c("left", "bottom"),type = "arrow") + 
-  tm_scale_bar(position = c("left", "bottom")) +
-  tm_layout(title = "Gender Inequality Difference between 2010 and 2019", legend.position = c("right", "bottom"))
