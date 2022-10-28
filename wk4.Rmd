@@ -1,0 +1,91 @@
+---
+title: "wk4"
+author: "phil"
+date: "2022-10-28"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(sf)
+library(fs)
+library(terra)
+library(usethis)
+library(here)
+library(janitor)
+library(tmap)
+library(tmaptools)
+library(countrycode)
+```
+
+
+```{r}
+gii <- read_csv(here('table.csv')) %>%
+  dplyr::select(iso3, country, gii_2010, gii_2019)
+  
+
+```
+
+
+```{r}
+# import shape file
+shape <- st_read('https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Countries_(Generalized)/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson') %>%
+  clean_names() %>% select(-country, -iso)
+
+#shape1 <- st_read(here('raw_data', 'World_Countries_(Generalized).geojson'))
+```
+
+
+```{r}
+# convert iso3 to iso2
+gii$iso2 <- countrycode(gii$iso3, 'iso3c', 'iso2c' )
+
+gii
+
+
+```
+
+
+```{r}
+# merge shape and csv data
+merged_data <- shape %>%
+  merge(.,
+        gii,
+        by.x = 'aff_iso',
+        by.y = 'iso2',
+        no.dups = T) 
+```
+
+
+```{r}
+# diff between 2010 and 2019
+merged_data_diff <- merged_data %>% 
+  mutate(diff = gii_2019 - gii_2010) %>%
+  select_all() %>% print()
+
+```
+```{r}
+# bounding box 
+world_gii <- merged_data_diff %>%
+  st_bbox() %>%
+  tmaptools::read_osm(., type = 'osm', zoom = NULL)
+```
+
+
+```{r}
+# world gender inequality map
+tmap_mode("plot")
+
+tm_shape(world_gii)+ #bounding box
+  tm_rgb()+ #raster aesthetic
+  tm_shape(merged_data_diff) + 
+  tm_polygons("diff", 
+              style="jenks",
+              palette="YlOrBr",
+              midpoint=NA,
+              title="Gender Inequality Difference between 2010 and 2019",
+              alpha = 0.5) + 
+  tm_compass(position = c("left", "bottom"),type = "arrow") + 
+  tm_scale_bar(position = c("left", "bottom")) +
+  tm_layout(title = "Gender Inequality Difference between 2010 and 2019", legend.position = c("right", "bottom"))
